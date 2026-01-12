@@ -7,12 +7,13 @@ import { AuthRequest } from "../types/auth";
 import bcrypt from "bcrypt";
 import { signinSchema, signupSchema } from "../validation/auth.schema";
 import { createNoteSchema, noteIdParamSchema, updateNoteSchema } from "../validation/note.schema";
+import { signinLimiter, signupLimiter } from "../middleware/rateLimiter";
 
 
 export const userRoutes = Router();
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-userRoutes.post("/signup", async(req: AuthRequest, res: Response)=>{
+userRoutes.post("/signup",signupLimiter, async(req: AuthRequest, res: Response)=>{
     const parsed = signupSchema.safeParse(req.body);
 
     if(!parsed.success){
@@ -37,7 +38,7 @@ userRoutes.post("/signup", async(req: AuthRequest, res: Response)=>{
     res.status(201).json({msg: "User created successfully"});
 });
 
-userRoutes.post("/signin", async(req: AuthRequest, res: Response)=>{
+userRoutes.post("/signin",signinLimiter, async(req: AuthRequest, res: Response)=>{
     const parsed = signinSchema.safeParse(req.body);
 
     if(!parsed.success){
