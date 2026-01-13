@@ -6,7 +6,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import { AuthRequest } from "../types/auth";
 import bcrypt from "bcrypt";
 import { signinSchema, signupSchema } from "../validation/auth.schema";
-import { createNoteSchema, noteIdParamSchema, updateNoteSchema } from "../validation/note.schema";
+import { createNoteSchema, listNotesQuerySchema, noteIdParamSchema, updateNoteSchema } from "../validation/note.schema";
 import { signinLimiter, signupLimiter } from "../middleware/rateLimiter";
 
 
@@ -67,10 +67,33 @@ userRoutes.post("/signin",signinLimiter, async(req: AuthRequest, res: Response)=
 });
 
 userRoutes.get("/notes", authMiddleware, async(req: AuthRequest, res: Response)=>{
+    const parsed = listNotesQuerySchema.safeParse(req.query);
+
+    if(!parsed.success){
+        return res.status(400).json({
+            error: "Invalid query input"
+        });
+    }
+    let limit = Number(parsed.data.limit) || 20;
+    let page = Number(parsed.data.page) || 1;
+
+    const maxLimit = 50;
+    if(limit>maxLimit){
+        limit = maxLimit;
+    }
+    if(page<1){
+        page=1;
+    }
+    const skip = (page-1)*limit;
+
     const notes = await Note.find({
         userId: req.userId,
         isDeleted: false
-    });
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
     res.status(200).json({ notes })
 });
 
@@ -137,7 +160,7 @@ userRoutes.delete("/notes/:noteId", authMiddleware, async(req: AuthRequest, res:
         {new: true}
     );
     if(!note){
-        return res.status(204).json({ msg: "Note not found "});
+        return res.status(404).json({ msg: "Note not found "});
     }
     res.json({ msg: "Note removed to trash"})
 });
@@ -172,7 +195,7 @@ userRoutes.patch("/notes/:noteId/restore", authMiddleware, async(req: AuthReques
 })
 
 
-userRoutes.delete("/notes/:noteId/parmanent",authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.delete("/notes/:noteId/permanent",authMiddleware, async(req: AuthRequest, res: Response)=>{
     const parsed = noteIdParamSchema.safeParse(req.params);
     if(!parsed.success){
         return res.status(400).json({ error: "Invalid note id"})

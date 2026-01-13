@@ -13,3 +13,8 @@ export const updateNoteSchema = z.object({
 export const noteIdParamSchema = z.object({
     noteId: z.string().length(24)
 })
+
+export const listNotesQuerySchema = z.object({
+    limit: z.string().optional(),
+    page: z.string().optional()
+})
