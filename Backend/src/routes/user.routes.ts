@@ -8,12 +8,13 @@ import bcrypt from "bcrypt";
 import { signinSchema, signupSchema } from "../validation/auth.schema";
 import { createNoteSchema, listNotesQuerySchema, noteIdParamSchema, updateNoteSchema } from "../validation/note.schema";
 import { signinLimiter, signupLimiter } from "../middleware/rateLimiter";
+import { asyncHandler } from "../utils/asyncHandler";
 
 
 export const userRoutes = Router();
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-userRoutes.post("/signup",signupLimiter, async(req: AuthRequest, res: Response)=>{
+userRoutes.post("/signup",signupLimiter, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = signupSchema.safeParse(req.body);
 
     if(!parsed.success){
@@ -36,9 +37,10 @@ userRoutes.post("/signup",signupLimiter, async(req: AuthRequest, res: Response)=
         password: hashedPassword
     })
     res.status(201).json({msg: "User created successfully"});
-});
+})
+);
 
-userRoutes.post("/signin",signinLimiter, async(req: AuthRequest, res: Response)=>{
+userRoutes.post("/signin",signinLimiter, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = signinSchema.safeParse(req.body);
 
     if(!parsed.success){
@@ -64,9 +66,10 @@ userRoutes.post("/signin",signinLimiter, async(req: AuthRequest, res: Response)=
         msg: "Signed In",
         token
      });
-});
+})
+);
 
-userRoutes.get("/notes", authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.get("/notes", authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = listNotesQuerySchema.safeParse(req.query);
 
     if(!parsed.success){
@@ -95,9 +98,10 @@ userRoutes.get("/notes", authMiddleware, async(req: AuthRequest, res: Response)=
     .limit(limit);
 
     res.status(200).json({ notes })
-});
+})
+);
 
-userRoutes.post("/notes", authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.post("/notes", authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = createNoteSchema.safeParse(req.body);
 
     if(!parsed.success){
@@ -115,8 +119,9 @@ userRoutes.post("/notes", authMiddleware, async(req: AuthRequest, res: Response)
         noteId: note._id   //for full note "note: note"
     })
 })
+)
 
-userRoutes.put("/notes/:noteId",authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.put("/notes/:noteId",authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const paramsParsed = noteIdParamSchema.safeParse(req.params);
 
     if(!paramsParsed.success){
@@ -141,10 +146,11 @@ userRoutes.put("/notes/:noteId",authMiddleware, async(req: AuthRequest, res: Res
         return res.status(404).json({ msg: "Note not found"});
     }
     res.status(200).json({note});
-});
+})
+);
 
 //soft delete
-userRoutes.delete("/notes/:noteId", authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.delete("/notes/:noteId", authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = noteIdParamSchema.safeParse(req.params);
     if(!parsed.success){
         return res.status(400).json({ error: "Invalid note id"})
@@ -164,19 +170,21 @@ userRoutes.delete("/notes/:noteId", authMiddleware, async(req: AuthRequest, res:
     }
     console.log(`(Soft-Delete) user=${req.userId}, note=${noteId}`)
     res.json({ msg: "Note removed to trash"})
-});
+})
+);
 
 // deleted notes
-userRoutes.get("/notes/trash", authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.get("/notes/trash", authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const notes =await Note.find({
         userId: req.userId,
         isDeleted: true
     });
     res.json({notes})
 })
+);
 
 //restore
-userRoutes.patch("/notes/:noteId/restore", authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.patch("/notes/:noteId/restore", authMiddleware, asyncHandler( async(req: AuthRequest, res: Response)=>{
     const parsed = noteIdParamSchema.safeParse(req.params);
     if(!parsed.success){
         return res.status(400).json({ error: "Invalid note id"})
@@ -195,9 +203,10 @@ userRoutes.patch("/notes/:noteId/restore", authMiddleware, async(req: AuthReques
     console.log(`(Restored) user=${req.userId}, note=${noteId}`)
     res.status(200).json({msg: "Note restored"});
 })
+);
 
 
-userRoutes.delete("/notes/:noteId/permanent",authMiddleware, async(req: AuthRequest, res: Response)=>{
+userRoutes.delete("/notes/:noteId/permanent",authMiddleware, asyncHandler(async(req: AuthRequest, res: Response)=>{
     const parsed = noteIdParamSchema.safeParse(req.params);
     if(!parsed.success){
         return res.status(400).json({ error: "Invalid note id"})
@@ -213,3 +222,4 @@ userRoutes.delete("/notes/:noteId/permanent",authMiddleware, async(req: AuthRequ
     console.log(`(Permanent-Delete) user=${req.userId}, note=${noteId}`)
         res.status(204).end();
 })
+);
