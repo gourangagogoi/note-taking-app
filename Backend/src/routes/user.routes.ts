@@ -162,6 +162,7 @@ userRoutes.delete("/notes/:noteId", authMiddleware, async(req: AuthRequest, res:
     if(!note){
         return res.status(404).json({ msg: "Note not found "});
     }
+    console.log(`(Soft-Delete) user=${req.userId}, note=${noteId}`)
     res.json({ msg: "Note removed to trash"})
 });
 
@@ -191,6 +192,7 @@ userRoutes.patch("/notes/:noteId/restore", authMiddleware, async(req: AuthReques
     if(!note){
         return res.status(404).json({ msg : "Note not found"});
     }
+    console.log(`(Restored) user=${req.userId}, note=${noteId}`)
     res.status(200).json({msg: "Note restored"});
 })
 
@@ -208,5 +210,6 @@ userRoutes.delete("/notes/:noteId/permanent",authMiddleware, async(req: AuthRequ
      if(!note){
         return res.status(404).json({ msg : "Note not found"});
     }
+    console.log(`(Permanent-Delete) user=${req.userId}, note=${noteId}`)
         res.status(204).end();
 })
